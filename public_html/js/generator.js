@@ -6,7 +6,7 @@ $(function() {
       var remote_subnet = $('#remote_subnet').val();
       var config_from_vpc = $('#config').val();
       validate(interface, local_subnet, remote_subnet, config_from_vpc);
-      
+
       var replaceTable = makeReplaceTable(interface, local_subnet, remote_subnet, config_from_vpc);
 
       $('#config_result').val(generateConfiguration(replaceTable));
@@ -19,15 +19,15 @@ $(function() {
 
 function makeReplaceTable(interface, local_subnet, remote_subnet, config_from_vpc) {
   var replaceTable = {};
-  
+
   replaceTable['VYATTA_IPSEC_INTERFACE'] = interface;
   replaceTable['LOCAL_SUBNET'] = local_subnet;
   replaceTable['VPC_REMOTE_SUBNET'] = remote_subnet;
 
-  // VPC からDLした構成情報から、必要な情報を取り出す。  
+  // VPC からDLした構成情報から、必要な情報を取り出す。
   var parser = new VPCConfigParser(config_from_vpc);
   replaceTable = $.extend(replaceTable, parser.parse());
-  
+
   return replaceTable;
 }
 
@@ -52,18 +52,18 @@ function replaceAll(replaceTable, str) {
 function validate(interface, local_subnet, remote_subnet, config_from_vpc) {
   var error_message = new Array();
   if (interface == "") {
-    error_message.push("「Vyatta側でIPSecを利用するネットワークインターフェイス」が入力されていません。");
+    error_message.push(" Missing IPSec Network Interface on Vyatta Node（ex. eth0。");
   }
   if (local_subnet == "") {
-    error_message.push("「Vyatta側のネットワーク情報」が入力されていません。");
+    error_message.push(" Missing Your private network（ex. 192.168.1.0/24）");
   }
   if (remote_subnet == "") {
-    error_message.push("「Amazon VPC側のネットワーク情報」が入力されていません。");
+    error_message.push(" Missing Amazon VPC IP CIDR Block（ex. 10.0.0.0/16）");
   }
   if (config_from_vpc == "") {
-    error_message.push("「Amazon VPCからダウンロードした設定情報」が入力されていません。");
+    error_message.push(" Missing Generic Configuration, which was downloaded from Amazon VPC。");
   }
-  
+
   if (error_message.length > 0) {
     throw error_message.join('\n');
   }
@@ -87,25 +87,20 @@ VPCConfigParser.prototype.parse = function() {
       this.parseTunnel(tunnelID);
     }
   }
-  
+
   return this.replaceTable;
 }
 
 VPCConfigParser.prototype.parseTunnel = function(tunnelID) {
   this.currentTunnelPrefix = "TUNNEL" + tunnelID + "_";
-  
-  var isEmptyLine = false;
+
   var len = this.config.length;
   for (; this.currentLine < len; this.currentLine++) {
     var line = this.config[this.currentLine];
-    if ($.trim(line) == "") {
-      if (isEmptyLine) {
-        break;
-      } else {
-        isEmptyLine = true;
-      }
-    } else {
-      isEmptyLine = false;
+    if (line.match(/^assigned to the VPC at creation time/)) {
+      break;
+    }
+    if ($.trim(line) != "") {
       if (line.match(/^Configure the IKE SA/)) {
         this.parseIKESA();
       } else if (line.match(/^Outside IP Addresses/)) {
