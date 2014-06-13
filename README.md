@@ -7,7 +7,7 @@ This static site accepts a generic VPN configuration from Amazon VPC and generat
 
 One additional step to run from the Vyatta appliance:
 
-set protocols bgp 65000 network <VYATTA PRIVATE IP CIDR>
+set protocols bgp 65000 network {VYATTA PRIVATE IP CIDR}
 commit
 save
 
